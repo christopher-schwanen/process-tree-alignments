@@ -41,10 +41,16 @@ def align(trace: Trace, process_tree_graph: nx.MultiDiGraph) -> float:
                          else 1 if i == len(trace) and process_tree_graph.nodes.get(v).get('sink') else 0)
                      for i in range(len(trace) + 1) for v in process_tree_graph.nodes)
 
-    shuffle_edges = [e for e in process_tree_graph.edges if process_tree_graph.edges.get(e).get('shuffle')]
-    s = m.addVars(len(trace) + 1, shuffle_edges, vtype=GRB.BINARY, name="s")
-    m.addConstrs(x[(i, *e)] == s[(i, *e)] * process_tree_graph.edges.get(e).get('capacity')
-                 for i in range(len(trace) + 1) for e in shuffle_edges)
+    shuffles = {(v, j): {'iac': process_tree_graph.nodes.get(v).get('shuffle')[j],
+                         'edges': [e for e in process_tree_graph.in_edges(v, keys=True)
+                                   if process_tree_graph.edges.get(e).get('shuffle') == j]}
+                for v in process_tree_graph.nodes if process_tree_graph.nodes.get(v).get('shuffle')
+                for j in range(len(process_tree_graph.nodes.get(v).get('shuffle')))}
+    s = m.addVars(len(trace) + 1, shuffles.keys(), vtype=GRB.BINARY, name="s")
+    m.addConstrs(gp.quicksum(x[(i, *e)] for e in shuffles[(v, j)]['edges'])
+                 == s[(i, v, j)] / shuffles[(v, j)]['iac']
+                 for v, j in shuffles
+                 for i in range(len(trace)+1))
 
     i_par_sync = [k for k, v in Counter(i for i, *e in sync_edges).items() if v > 1]
     sync_edges_iacs = {(i, *e): process_tree_graph.edges.get(e).get('cost') for i, *e in sync_edges if i in i_par_sync}

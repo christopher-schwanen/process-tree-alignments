@@ -104,12 +104,17 @@ def _build_process_tree_subgraph_parallel(tree: ProcessTree, graph: nx.MultiDiGr
     if tree.operator != Operator.PARALLEL:
         raise Exception(f"Operator {tree.operator} is not a parallel")
 
-    old_end_node = end_node
-    end_node = graph.number_of_nodes()
-    graph.add_edge(end_node, old_end_node, label=None, capacity=1./iac, cost=0, shuffle=True)
+    if 'shuffle' in graph.nodes.get(end_node).keys():
+        shuffle = len(graph.nodes.get(end_node)["shuffle"])
+        graph.nodes.get(end_node)["shuffle"] += [iac]
+    else:
+        shuffle = 0
+        graph.nodes.get(end_node)["shuffle"] = [iac]
     iac *= len(tree.children)
     for child in tree.children:
-        graph = _build_process_tree_subgraph(child, graph, start_node, end_node, iac)
+        spread_node = graph.number_of_nodes()
+        graph.add_edge(spread_node, end_node, label=None, capacity=1./iac, cost=0, shuffle=shuffle)
+        graph = _build_process_tree_subgraph(child, graph, start_node, spread_node, iac)
     return graph
 
 
