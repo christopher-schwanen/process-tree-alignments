@@ -2,11 +2,13 @@ from typing import Any
 
 import networkx as nx
 import numpy as np
+from bs4 import BeautifulSoup
 from matplotlib import pyplot as plt
 from matplotlib.patches import ConnectionPatch
 from matplotlib.path import Path
 from pm4py.objects.process_tree.obj import ProcessTree, Operator
 from pm4py.objects.process_tree.utils.generic import is_leaf, is_tau_leaf
+from pyvis.network import Network
 
 
 def build_process_tree_graph(tree: ProcessTree) -> nx.MultiDiGraph:
@@ -238,3 +240,29 @@ def view_process_tree_graph(process_tree_graph: nx.MultiDiGraph, rotate: bool = 
     )
     plt.axis('off')
     plt.show()
+
+
+def view_process_tree_graph_pyvis(process_tree_graph: nx.MultiDiGraph) -> None:
+    net = Network(width='100%', height='100%', directed=True)
+    for node in process_tree_graph.nodes:
+        net.add_node(node, label=str(node), size=10,
+                     color='green' if 'source' in process_tree_graph.nodes.get(node).keys()
+                     else 'red' if 'sink' in process_tree_graph.nodes.get(node).keys()
+                     else 'blue' if 'shuffle' in process_tree_graph.nodes.get(node).keys()
+                     else 'gray')
+    for edge in process_tree_graph.edges:
+        net.add_edge(edge[0], edge[1], label=process_tree_graph.edges.get(edge)['label'],
+                     width=10*process_tree_graph.edges.get(edge)['capacity'],
+                     color='blue' if 'shuffle' in process_tree_graph.edges.get(edge).keys() else 'gray')
+    net.show('process_tree_graph.html')
+
+    # Open the HTML file and parse it with BeautifulSoup
+    with open('process_tree_graph.html', 'r+') as f:
+        soup = BeautifulSoup(f, 'html.parser')
+
+        soup.div['style'] = 'height: 100%; width: 100%;'
+
+        # Write the modified HTML back to the file
+        f.seek(0)
+        f.write(str(soup))
+        f.truncate()
