@@ -1,5 +1,3 @@
-from collections import Counter
-
 import gurobipy as gp
 import networkx as nx
 from gurobipy import GRB
@@ -20,12 +18,14 @@ def align(trace: Trace, process_tree_graph: nx.MultiDiGraph) -> float:
                   lb=0, ub=1,
                   obj=1,
                   vtype=GRB.CONTINUOUS, name="y")
-    sync_edges = [(i + 1, *e) for e in process_tree_graph.edges for i, a in enumerate(trace)
-                  if process_tree_graph.edges.get(e).get('label') == a.get('concept:name')]
-    z = m.addVars(list(sync_edges),
-                  lb=0, ub={(i, *e): process_tree_graph.edges.get(e).get('capacity') for i, *e in sync_edges},
+    sync_edges = {i+1: [e for e in process_tree_graph.edges
+                        if process_tree_graph.edges.get(e).get('label') == a.get('concept:name')]
+                  for i, a in enumerate(trace)}
+    z = m.addVars([(i, *e) for i in sync_edges for e in sync_edges[i]],
+                  lb=0, ub={(i, *e): process_tree_graph.edges.get(e).get('capacity') for i in sync_edges
+                            for e in sync_edges[i]},
                   obj={(i, *e): 1 - cost if (cost := process_tree_graph.edges.get(e).get('cost')) > 1 else 0
-                       for i, *e in sync_edges},
+                       for i in sync_edges for e in sync_edges[i]},
                   vtype=GRB.CONTINUOUS, name="z")
 
     # Flow conservation constraints
@@ -54,9 +54,8 @@ def align(trace: Trace, process_tree_graph: nx.MultiDiGraph) -> float:
                  for i in range(len(trace)+1))
 
     # Duplicate labels constraints
-    i_par_sync = [k for k, v in Counter(i for i, *e in sync_edges).items() if v > 1]
-    sync_edges_iacs = {(i, *e): process_tree_graph.edges.get(e).get('cost') for i, *e in sync_edges if i in i_par_sync}
-    m.addConstrs(z.prod(sync_edges_iacs, i, '*', '*', '*') <= 1 for i in i_par_sync)
+    m.addConstrs(gp.quicksum(z[(i, *e)] * process_tree_graph.edges.get(e).get('cost') for e in sync_edges[i]) <= 1
+                 for i in sync_edges if len(sync_edges[i]) > 1)
 
     m.optimize()
 
