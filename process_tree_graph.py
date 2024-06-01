@@ -34,6 +34,14 @@ def build_process_tree_graph(tree: ProcessTree) -> nx.MultiDiGraph:
     return graph
 
 
+def build_process_tree_graph_plain(tree: ProcessTree) -> nx.MultiDiGraph:
+    graph: nx.MultiDiGraph = nx.MultiDiGraph()
+    graph.add_node(0, source=True)
+    graph.add_node(1, sink=True)
+    graph = _build_process_tree_subgraph(tree, graph, 0, 1)
+    return graph
+
+
 def _build_process_tree_subgraph(tree: ProcessTree, graph: nx.MultiDiGraph, start_node: Any, end_node: Any,
                                  iac: int = 1) -> nx.MultiDiGraph:
     match tree.operator:
@@ -89,11 +97,6 @@ def _build_process_tree_subgraph_xor(tree: ProcessTree, graph: nx.MultiDiGraph, 
     if tree.operator != Operator.XOR:
         raise Exception(f"Operator {tree.operator} is not an XOR")
 
-    if iac > 1:
-        old_end_node = end_node
-        end_node = graph.number_of_nodes()
-        graph.add_edge(end_node, old_end_node, label=None, capacity=1./iac, cost=0)
-
     for child in tree.children:
         graph = _build_process_tree_subgraph(child, graph, start_node, end_node, iac)
     return graph
@@ -104,17 +107,25 @@ def _build_process_tree_subgraph_parallel(tree: ProcessTree, graph: nx.MultiDiGr
     if tree.operator != Operator.PARALLEL:
         raise Exception(f"Operator {tree.operator} is not a parallel")
 
-    if 'shuffle' in graph.nodes.get(end_node).keys():
-        shuffle = len(graph.nodes.get(end_node)["shuffle"])
-        graph.nodes.get(end_node)["shuffle"] += [iac]
-    else:
-        shuffle = 0
-        graph.nodes.get(end_node)["shuffle"] = [iac]
+    if 'shuffle' not in graph.nodes.get(start_node).keys():
+        graph.nodes.get(start_node)["shuffle"] = []
+        graph.nodes.get(start_node)["iac"] = iac
+    if 'shuffle' not in graph.nodes.get(end_node).keys():
+        graph.nodes.get(end_node)["shuffle"] = []
+        graph.nodes.get(end_node)["iac"] = iac
+    shuffle_split = []
+    shuffle_join = []
     iac *= len(tree.children)
     for child in tree.children:
-        spread_node = graph.number_of_nodes()
-        graph.add_edge(spread_node, end_node, label=None, capacity=1./iac, cost=0, shuffle=shuffle)
-        graph = _build_process_tree_subgraph(child, graph, start_node, spread_node, iac)
+        spread_node_start = graph.number_of_nodes()
+        spread_node_end = spread_node_start + 1
+        shuffle_split.append((start_node, spread_node_start, 0))
+        shuffle_join.append((spread_node_end, end_node, 0))
+        graph.add_edge(start_node, spread_node_start, label=None, capacity=1./iac, cost=0, shuffle=True)
+        graph.add_edge(spread_node_end, end_node, label=None, capacity=1./iac, cost=0, shuffle=True)
+        graph = _build_process_tree_subgraph(child, graph, spread_node_start, spread_node_end, iac)
+    graph.nodes.get(start_node)["shuffle"].append(shuffle_split)
+    graph.nodes.get(end_node)["shuffle"].append(shuffle_join)
     return graph
 
 
