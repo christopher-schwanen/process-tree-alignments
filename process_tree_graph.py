@@ -256,7 +256,10 @@ def view_process_tree_graph(process_tree_graph: nx.MultiDiGraph, rotate: bool = 
 def view_process_tree_graph_pyvis(process_tree_graph: nx.MultiDiGraph) -> None:
     net = Network(width='100%', height='100%', directed=True)
     for node in process_tree_graph.nodes:
+        shuffle_dict = process_tree_graph.nodes.get(node).get('shuffle')
+        title = str(shuffle_dict) if shuffle_dict else None
         net.add_node(node, label=str(node), size=10,
+                     title=title,
                      color='green' if 'source' in process_tree_graph.nodes.get(node).keys()
                      else 'red' if 'sink' in process_tree_graph.nodes.get(node).keys()
                      else 'blue' if 'shuffle' in process_tree_graph.nodes.get(node).keys()
