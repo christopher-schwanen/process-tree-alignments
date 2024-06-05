@@ -1,10 +1,11 @@
 import gurobipy as gp
-import networkx as nx
 from gurobipy import GRB
 from pm4py.objects.log.obj import Trace
 
+from process_tree_graph import ProcessTreeGraph
 
-def align(trace: Trace, process_tree_graph: nx.MultiDiGraph) -> float:
+
+def align(trace: Trace, process_tree_graph: ProcessTreeGraph) -> float:
     m = gp.Model("process_tree_alignment")
 
     # Flow variables including arc capacity constraints and objective function (minimize is default)
