@@ -233,31 +233,30 @@ class ProcessTreeGraph(nx.MultiDiGraph):
         plt.axis('off')
         plt.show()
 
+    def view_pyvis(self) -> None:
+        net = Network(width='100%', height='100%', directed=True)
+        for node in self.nodes:
+            shuffle_dict = self.nodes.get(node).get('shuffle')
+            title = str(shuffle_dict) if shuffle_dict else None
+            net.add_node(node, label=str(node), size=10,
+                         title=title,
+                         color='green' if 'source' in self.nodes.get(node).keys()
+                         else 'red' if 'sink' in self.nodes.get(node).keys()
+                         else 'blue' if 'shuffle' in self.nodes.get(node).keys()
+                         else 'gray')
+        for edge in self.edges:
+            net.add_edge(edge[0], edge[1], label=self.edges.get(edge)['label'],
+                         width=10*self.edges.get(edge)['capacity'],
+                         color='blue' if 'shuffle' in self.edges.get(edge).keys() else 'gray')
+        net.show('output/process_tree_graph.html')
 
-def view_process_tree_graph_pyvis(process_tree_graph: nx.MultiDiGraph) -> None:
-    net = Network(width='100%', height='100%', directed=True)
-    for node in process_tree_graph.nodes:
-        shuffle_dict = process_tree_graph.nodes.get(node).get('shuffle')
-        title = str(shuffle_dict) if shuffle_dict else None
-        net.add_node(node, label=str(node), size=10,
-                     title=title,
-                     color='green' if 'source' in process_tree_graph.nodes.get(node).keys()
-                     else 'red' if 'sink' in process_tree_graph.nodes.get(node).keys()
-                     else 'blue' if 'shuffle' in process_tree_graph.nodes.get(node).keys()
-                     else 'gray')
-    for edge in process_tree_graph.edges:
-        net.add_edge(edge[0], edge[1], label=process_tree_graph.edges.get(edge)['label'],
-                     width=10*process_tree_graph.edges.get(edge)['capacity'],
-                     color='blue' if 'shuffle' in process_tree_graph.edges.get(edge).keys() else 'gray')
-    net.show('process_tree_graph.html')
+        # Open the HTML file and parse it with BeautifulSoup
+        with open('output/process_tree_graph.html', 'r+') as f:
+            soup = BeautifulSoup(f, 'html.parser')
 
-    # Open the HTML file and parse it with BeautifulSoup
-    with open('process_tree_graph.html', 'r+') as f:
-        soup = BeautifulSoup(f, 'html.parser')
+            soup.div['style'] = 'height: 100%; width: 100%;'
 
-        soup.div['style'] = 'height: 100%; width: 100%;'
-
-        # Write the modified HTML back to the file
-        f.seek(0)
-        f.write(str(soup))
-        f.truncate()
+            # Write the modified HTML back to the file
+            f.seek(0)
+            f.write(str(soup))
+            f.truncate()
