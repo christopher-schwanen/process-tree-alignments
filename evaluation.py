@@ -1,3 +1,5 @@
+import csv
+from pathlib import Path
 from timeit import Timer
 
 import pandas as pd
@@ -16,7 +18,7 @@ def evaluate_trace(trace: Trace,
                    process_tree: ProcessTree,
                    process_tree_graph: ProcessTreeGraph,
                    accepting_petri_net: tuple[PetriNet, Marking, Marking],
-                   repeat: int = 10
+                   repeat: int = 10,
                    ) -> tuple[
                                   tuple[list[float], list[float], list[float]],
                                   tuple[float, float, float],
@@ -44,19 +46,29 @@ def evaluate_trace(trace: Trace,
 
 def evaluate_event_log(event_log: EventLog | pd.DataFrame,
                        process_tree: ProcessTree,
-                       repeat: int = 10
-                       ) -> tuple[
-                                      dict[str, tuple[list[float], list[float], list[float]]],
-                                      dict[str, tuple[float, float, float]],
-                                  ]:
+                       repeat: int = 10,
+                       result_path: str | Path = "output",
+                       file_tag: str = "",
+                       ) -> None:
+    if isinstance(result_path, str):
+        result_path = Path(result_path)
+    if not result_path.is_dir():
+        result_path.mkdir()
+
     # Build process tree graph
     process_tree_graph = ProcessTreeGraph(process_tree)
     # Build Petri net
     accepting_petri_net = process_tree_to_petri_net(process_tree)
 
-    # Get trace variant results
-    results_time, results_cost = {}, {}
-    for variant, trace in zip(*get_variants(event_log, None)):
-        results_time[variant], results_cost[variant] = evaluate_trace(trace, process_tree, process_tree_graph, accepting_petri_net, repeat)
+    with (open(result_path / f"times{file_tag}.csv", "w", newline='') as f,
+          open(result_path / f"costs{file_tag}.csv", "w", newline='') as g):
+        time_writer = csv.writer(f, delimiter=",")
+        cost_writer = csv.writer(g, delimiter=",")
+        # Get trace variant results
+        for variant, trace in zip(*get_variants(event_log, None)):
+            results_time, results_cost = evaluate_trace(trace, process_tree, process_tree_graph, accepting_petri_net, repeat)
+            for r in zip(*results_time):
+                time_writer.writerow([*r, variant])
+            cost_writer.writerow([*results_cost, variant])
 
-    return results_time, results_cost
+    return
