@@ -35,13 +35,15 @@ if __name__ == "__main__":
         cur_path.mkdir()
         event_log = pm4py.read_xes(str(xes_file))
         # Check if in data_path there is a file with the same name as the xes file but with the extension .ptml
-        ptml_file = data_path / f"{xes_file.stem}.ptml"
-        if ptml_file.is_file():
+        if (ptml_file := data_path / f"{xes_file.stem}.ptml").is_file():
             process_tree = pm4py.read_ptml(str(ptml_file))
-            evaluate_event_log(event_log, process_tree, repeat=5, result_path=cur_path, file_tag="_pt")
+            evaluate_event_log(event_log, process_tree, repeat=5, result_path=cur_path, file_tag="")
         else:
-            for noise_threshold, noise_tag in [(0.0, "00")]: #, (0.1, "10"), (0.25, "25"), (0.5, "50")]:
-                process_tree = discover_process_tree(event_log, noise_threshold=noise_threshold)
-                pm4py.write_ptml(process_tree, str(cur_path / f"{xes_file.stem}_pt{noise_tag}.ptml"))
-                evaluate_event_log(event_log, process_tree, repeat=5, result_path=cur_path, file_tag=f"_pt{noise_tag}")
+            for noise_threshold, file_tag in [(0.0, "_pt00"), (0.1, "_pt10"), (0.25, "_pt25"), (0.5, "_pt50")]:
+                if (ptml_file := data_path / f"{xes_file.stem}{file_tag}.ptml").is_file():
+                    process_tree = pm4py.read_ptml(str(ptml_file))
+                else:
+                    process_tree = discover_process_tree(event_log, noise_threshold=noise_threshold)
+                    pm4py.write_ptml(process_tree, str(data_path / f"{xes_file.stem}{file_tag}.ptml"))
+                evaluate_event_log(event_log, process_tree, repeat=5, result_path=cur_path, file_tag=file_tag)
     # example()
