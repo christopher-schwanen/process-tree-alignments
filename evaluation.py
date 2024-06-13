@@ -13,6 +13,10 @@ from pm4py.objects.log.obj import Trace, EventLog
 from process_tree_alignment import align
 from process_tree_graph import ProcessTreeGraph
 
+import random
+random.seed(42)
+
+MAX_TRACE_VARIANTS = 5
 
 def evaluate_trace(trace: Trace,
                    process_tree: ProcessTree,
@@ -46,9 +50,10 @@ def evaluate_trace(trace: Trace,
 
 def evaluate_event_log(event_log: EventLog | pd.DataFrame,
                        process_tree: ProcessTree,
-                       repeat: int = 10,
+                       repeat: int = 5,
                        result_path: str | Path = "output",
                        file_tag: str = "",
+                       max_trace_variants: int = MAX_TRACE_VARIANTS,
                        ) -> None:
     if isinstance(result_path, str):
         result_path = Path(result_path)
@@ -65,7 +70,11 @@ def evaluate_event_log(event_log: EventLog | pd.DataFrame,
         time_writer = csv.writer(file_time, delimiter=",")
         cost_writer = csv.writer(file_cost, delimiter=",")
         # Get trace variant results
-        for variant, trace in zip(*get_variants(event_log, None)):
+        trace_variants = list(zip(*get_variants(event_log, None)))
+        # Check if number of trace_variants is below max_trace_variants
+        if len(trace_variants) > max_trace_variants:
+            trace_variants = random.sample(trace_variants, max_trace_variants)
+        for variant, trace in trace_variants:
             results_time, results_cost = evaluate_trace(trace, process_tree, process_tree_graph, accepting_petri_net, repeat)
             for r in zip(*results_time):
                 time_writer.writerow([*r, variant])
