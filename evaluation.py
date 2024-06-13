@@ -60,15 +60,17 @@ def evaluate_event_log(event_log: EventLog | pd.DataFrame,
     # Build Petri net
     accepting_petri_net = process_tree_to_petri_net(process_tree)
 
-    with (open(result_path / f"times{file_tag}.csv", "w", newline='') as f,
-          open(result_path / f"costs{file_tag}.csv", "w", newline='') as g):
-        time_writer = csv.writer(f, delimiter=",")
-        cost_writer = csv.writer(g, delimiter=",")
+    with (open(result_path / f"times{file_tag}.csv", "w", newline='') as file_time,
+          open(result_path / f"costs{file_tag}.csv", "w", newline='') as file_cost):
+        time_writer = csv.writer(file_time, delimiter=",")
+        cost_writer = csv.writer(file_cost, delimiter=",")
         # Get trace variant results
         for variant, trace in zip(*get_variants(event_log, None)):
             results_time, results_cost = evaluate_trace(trace, process_tree, process_tree_graph, accepting_petri_net, repeat)
             for r in zip(*results_time):
                 time_writer.writerow([*r, variant])
             cost_writer.writerow([*results_cost, variant])
+            file_time.flush()
+            file_cost.flush()
 
     return
