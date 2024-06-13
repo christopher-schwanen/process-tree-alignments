@@ -16,10 +16,11 @@ import functools
 import random
 random.seed(42)
 
+
 import multiprocessing
 from multiprocessing import Value
 
-TIMEOUT = 10
+TIMEOUT = 30
 MAX_TRACE_VARIANTS = 10
 OFFSET = 0
 
@@ -51,6 +52,7 @@ def evaluate_trace(trace: Trace,
         if p.is_alive():
             p.terminate()
             p.join()
+            raise TimeoutError
         p.close()
 
     def alignments_with_timeout() -> None:
@@ -60,6 +62,7 @@ def evaluate_trace(trace: Trace,
         if p.is_alive():
             p.terminate()
             p.join()
+            raise TimeoutError
         p.close()
 
     def alignments_petri_net_with_timeout() -> None:
@@ -69,17 +72,27 @@ def evaluate_trace(trace: Trace,
         if p.is_alive():
             p.terminate()
             p.join()
+            raise TimeoutError
         p.close()
 
-    times1 = Timer(align_with_timeout).repeat(repeat=repeat, number=1)
-    times2 = Timer(alignments_with_timeout).repeat(repeat=repeat, number=1)
-    times3 = Timer(alignments_petri_net_with_timeout).repeat(repeat=repeat, number=1)
+    try:
+        times1 = Timer(align_with_timeout).repeat(repeat=repeat, number=1)
+    except TimeoutError:
+        times1 = [TIMEOUT] * repeat
+    try:
+        times2 = Timer(alignments_with_timeout).repeat(repeat=repeat, number=1)
+    except TimeoutError:
+        times2 = [TIMEOUT] * repeat
+    try:
+        times3 = Timer(alignments_petri_net_with_timeout).repeat(repeat=repeat, number=1)
+    except TimeoutError:
+        times3 = [TIMEOUT] * repeat
 
-    if min(times1) > TIMEOUT:
+    if min(times1) >= TIMEOUT:
         cost1.value = -1.0
-    if min(times2) > TIMEOUT:
+    if min(times2) >= TIMEOUT:
         cost2.value = -1.0
-    if min(times3) > TIMEOUT:
+    if min(times3) >= TIMEOUT:
         cost3.value = -1.0
 
 
