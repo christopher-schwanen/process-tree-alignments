@@ -6,7 +6,9 @@ from timeit import Timer
 
 import pandas as pd
 from pm4py import ProcessTree, PetriNet, Marking
-from pm4py.algo.conformance.alignments.petri_net.algorithm import (__get_variants_structure as get_variants,
+from pm4py.algo.conformance.alignments.petri_net.algorithm import (__close_progress_bar as close_progress_bar,
+                                                                   __get_progress_bar as get_progress_bar,
+                                                                   __get_variants_structure as get_variants,
                                                                    apply as pm4py_align_petri_net)
 from pm4py.algo.conformance.alignments.process_tree.algorithm import apply as pm4py_align_process_tree
 from pm4py.objects.conversion.process_tree.converter import apply as process_tree_to_petri_net
@@ -127,6 +129,10 @@ def evaluate_event_log(event_log: EventLog | pd.DataFrame,
         # Check if number of trace_variants is below max_trace_variants
         if len(trace_variants) > max_trace_variants:
             trace_variants = trace_variants[OFFSET:(max_trace_variants+OFFSET)]
+
+        # PM4Py progress bar
+        progress = get_progress_bar(len(trace_variants), None)
+
         for variant, trace in trace_variants:
             results_time, results_cost = evaluate_trace(trace, process_tree, process_tree_graph, accepting_petri_net, repeat)
             for r in zip(*results_time):
@@ -134,5 +140,10 @@ def evaluate_event_log(event_log: EventLog | pd.DataFrame,
             cost_writer.writerow([*results_cost, variant])
             file_time.flush()
             file_cost.flush()
+
+            if progress:
+                progress.update()
+
+        close_progress_bar(progress)
 
     return
