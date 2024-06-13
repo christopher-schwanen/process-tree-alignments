@@ -31,18 +31,17 @@ def evaluate_trace(trace: Trace,
                                   tuple[list[float], list[float], list[float]],
                                   tuple[float, float, float],
                               ]:
-    cost1, cost2, cost3 = num = Value('d', -1.0), Value('d', -1.0), Value('d', -1.0)
+    
+    cost1, cost2, cost3 = Value('d', -1.0), Value('d', -1.0), Value('d', -1.0)
 
     def align_wrapper(cost1) -> None:
         cost1.value = align(trace, process_tree_graph)
  
-
     def alignments_wrapper(cost2) -> None:
         cost2.value = pm4py_align_process_tree(trace, process_tree)['cost']
 
     def alignments_petri_net_wrapper(cost3) -> None:
         cost3.value = pm4py_align_petri_net(trace, *accepting_petri_net)['cost']
-
 
     def align_with_timeout() -> None:
         p = multiprocessing.Process(target=align_wrapper, args=(cost1,))
@@ -52,7 +51,6 @@ def evaluate_trace(trace: Trace,
             p.terminate()
             p.join()
         p.close()
-
 
     def alignments_with_timeout() -> None:
         p = multiprocessing.Process(target=alignments_wrapper, args=(cost2,))
