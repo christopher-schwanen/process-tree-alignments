@@ -12,11 +12,12 @@ from pm4py.objects.log.obj import Trace, EventLog
 
 from process_tree_alignment import align
 from process_tree_graph import ProcessTreeGraph
-
+import functools
 import random
 random.seed(42)
 
 import multiprocessing
+from multiprocessing import Value
 
 TIMEOUT = 10
 MAX_TRACE_VARIANTS = 10
@@ -30,63 +31,60 @@ def evaluate_trace(trace: Trace,
                                   tuple[list[float], list[float], list[float]],
                                   tuple[float, float, float],
                               ]:
-    costs = [None, None, None]
+    cost1, cost2, cost3 = num = Value('d', -1.0), Value('d', -1.0), Value('d', -1.0)
 
-    def align_wrapper(costs) -> None:
-        costs[0] = align(trace, process_tree_graph)
+    def align_wrapper(cost1) -> None:
+        cost1.value = align(trace, process_tree_graph)
+ 
 
+    def alignments_wrapper(cost2) -> None:
+        cost2.value = pm4py_align_process_tree(trace, process_tree)['cost']
 
-    def alignments_wrapper(costs) -> None:
-        costs[1] = pm4py_align_process_tree(trace, process_tree)['cost']
-
-    def alignments_petri_net_wrapper(costs) -> None:
-        costs[2] = pm4py_align_petri_net(trace, *accepting_petri_net)['cost']
+    def alignments_petri_net_wrapper(cost3) -> None:
+        cost3.value = pm4py_align_petri_net(trace, *accepting_petri_net)['cost']
 
 
     def align_with_timeout() -> None:
-        nonlocal costs
-        p = multiprocessing.Process(target=align_wrapper, args=(costs,))
+        p = multiprocessing.Process(target=align_wrapper, args=(cost1,))
         p.start()
         p.join(TIMEOUT)
         if p.is_alive():
             p.terminate()
+            p.join()
         p.close()
 
-    def alignments_with_timeout() -> None:
-        nonlocal costs
-        p = multiprocessing.Process(target=alignments_wrapper, args=(costs,))
-        p.start()
-        p.join(TIMEOUT)
-        if p.is_alive():
-            p.terminate()
-            p.join()
-    
-    def alignments_petri_net_with_timeout() -> None:
-        nonlocal costs
-        p = multiprocessing.Process(target=alignments_petri_net_wrapper, args=(costs,))
-        p.start()
-        p.join(TIMEOUT)
-        if p.is_alive():
-            p.terminate()
-            p.join()
 
-    cost1, cost2, cost3 = costs
+    def alignments_with_timeout() -> None:
+        p = multiprocessing.Process(target=alignments_wrapper, args=(cost2,))
+        p.start()
+        p.join(TIMEOUT)
+        if p.is_alive():
+            p.terminate()
+            p.join()
+        p.close()
+
+    def alignments_petri_net_with_timeout() -> None:
+        p = multiprocessing.Process(target=alignments_petri_net_wrapper, args=(cost3,))
+        p.start()
+        p.join(TIMEOUT)
+        if p.is_alive():
+            p.terminate()
+            p.join()
+        p.close()
 
     times1 = Timer(align_with_timeout).repeat(repeat=repeat, number=1)
     times2 = Timer(alignments_with_timeout).repeat(repeat=repeat, number=1)
     times3 = Timer(alignments_petri_net_with_timeout).repeat(repeat=repeat, number=1)
 
-    # if cost1 is None:
-    #     cost1 = float('nan')
-    #     times1 = [float('nan')]
-    # if cost2 is None:
-    #     cost2 = float('nan')
-    #     times2 = [float('nan')]
-    # if cost3 is None:
-    #     cost3 = float('nan')
-    #     times3 = [float('nan')]
+    if min(times1) > TIMEOUT:
+        cost1.value = -1.0
+    if min(times2) > TIMEOUT:
+        cost2.value = -1.0
+    if min(times3) > TIMEOUT:
+        cost3.value = -1.0
 
-    return (times1, times2, times3), (cost1, cost2, cost3)
+
+    return (times1, times2, times3), (cost1.value, cost2.value, cost3.value)
 
 
 def evaluate_event_log(event_log: EventLog | pd.DataFrame,
