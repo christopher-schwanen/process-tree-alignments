@@ -57,6 +57,6 @@ def we_love_shuffle(n, number_of_traces = 5):
 if __name__ == "__main__":
     # boring_palindrom(2, 2)
     data_path = Path("data").resolve()
-    pt, eventlog = boring_palindrom(5, 5, number_of_traces=10)
+    pt, eventlog = boring_palindrom(10, 6, number_of_traces=10)
     pm4py.write_ptml(pt, str(data_path / "boring_palindrom.ptml"))
     pm4py.write_xes(eventlog, str(data_path / "boring_palindrom.xes"))
