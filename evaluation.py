@@ -16,7 +16,7 @@ from process_tree_graph import ProcessTreeGraph
 import random
 random.seed(42)
 
-MAX_TRACE_VARIANTS = 5
+MAX_TRACE_VARIANTS = 10
 
 def evaluate_trace(trace: Trace,
                    process_tree: ProcessTree,
