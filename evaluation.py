@@ -21,6 +21,7 @@ from multiprocessing import Value
 
 TIMEOUT = 10
 MAX_TRACE_VARIANTS = 10
+OFFSET = 0
 
 def evaluate_trace(trace: Trace,
                    process_tree: ProcessTree,
@@ -108,9 +109,10 @@ def evaluate_event_log(event_log: EventLog | pd.DataFrame,
         cost_writer = csv.writer(file_cost, delimiter=",")
         # Get trace variant results
         trace_variants = list(zip(*get_variants(event_log, None)))
+        random.shuffle(trace_variants)
         # Check if number of trace_variants is below max_trace_variants
         if len(trace_variants) > max_trace_variants:
-            trace_variants = random.sample(trace_variants, max_trace_variants)
+            trace_variants = trace_variants[OFFSET:(max_trace_variants+OFFSET)]
         for variant, trace in trace_variants:
             results_time, results_cost = evaluate_trace(trace, process_tree, process_tree_graph, accepting_petri_net, repeat)
             for r in zip(*results_time):
