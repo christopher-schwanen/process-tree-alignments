@@ -20,7 +20,7 @@ from process_tree_graph import ProcessTreeGraph
 
 random.seed(42)
 TIMEOUT = 65
-MAX_TRACE_VARIANTS = 10
+MAX_TRACE_VARIANTS = 20
 OFFSET = 0
 
 
