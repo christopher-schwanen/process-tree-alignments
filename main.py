@@ -25,11 +25,14 @@ def example() -> None:
 
 
 if __name__ == "__main__":
+
+    # Data path with input data (xes files)
     data_path = Path("data").resolve()
+    # Output path to store the results
     result_path = Path("output") / datetime.now().strftime("%Y%m%d%H%M%S")
     result_path.mkdir()
 
-    # List of benchmarks that we want to execute
+    # Compute a list of benchmarks that we should execute
     evaluate_event_logs = []
 
     for xes_file in data_path.glob("*.xes"):
@@ -61,8 +64,6 @@ if __name__ == "__main__":
                                         'repeat' : 5, 
                                         'result_path': cur_path, 
                                         'file_tag': file_tag})
-                evaluate_event_log(event_log, process_tree, repeat=5, result_path=cur_path, file_tag=file_tag)
-    # example()
 
     # Evaluation:
         for benchmark in evaluate_event_logs:
