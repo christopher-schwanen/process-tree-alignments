@@ -8,7 +8,7 @@ from evaluation import evaluate_event_log
 from process_tree_alignment import align
 from process_tree_graph import ProcessTreeGraph
 from utils import create_trace, discover_process_tree
-import sys 
+
 
 def example() -> None:
     from pm4py.algo.conformance.alignments.process_tree.algorithm import apply as alignments
@@ -46,10 +46,10 @@ if __name__ == "__main__":
         if (ptml_file := data_path / f"{xes_file.stem}.ptml").is_file():
             process_tree = pm4py.read_ptml(str(ptml_file))
             print(f" -> {ptml_file.stem}")
-            evaluate_event_logs.append({'event_log': event_log, 
-                                        'process_tree': process_tree, 
-                                        'repeat' : 5, 
-                                        'result_path': cur_path, 
+            evaluate_event_logs.append({'event_log': event_log,
+                                        'process_tree': process_tree,
+                                        'repeat': 5,
+                                        'result_path': cur_path,
                                         'file_tag': ""})
         else:
             for noise_threshold, file_tag in [(0.0, "_pt00"), (0.1, "_pt10"), (0.25, "_pt25"), (0.5, "_pt50")]:
@@ -60,12 +60,11 @@ if __name__ == "__main__":
                     pm4py.write_ptml(process_tree, str(data_path / f"{xes_file.stem}{file_tag}.ptml"))
                 print(f"adding -> {ptml_file.stem}")
                 evaluate_event_logs.append({'event_log': event_log, 
-                                        'process_tree': process_tree, 
-                                        'repeat' : 5, 
-                                        'result_path': cur_path, 
-                                        'file_tag': file_tag})
+                                            'process_tree': process_tree,
+                                            'repeat': 5,
+                                            'result_path': cur_path,
+                                            'file_tag': file_tag})
 
     # Evaluation:
         for benchmark in evaluate_event_logs:
             evaluate_event_log(**benchmark)
-    
