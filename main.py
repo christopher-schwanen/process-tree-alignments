@@ -35,14 +35,20 @@ if __name__ == "__main__":
     for xes_file in data_path.glob("*.xes"):
         if not xes_file.is_file():
             continue
-        cur_path = result_path / xes_file.stem
+        orig_xes_file = xes_file
+        # Check if the xes file ends with _harder.xes then remove the _harder part
+        if xes_file.stem.endswith("_harder"):
+            print("Note: Processing a harder XES file!")
+            xes_file = data_path / f"{xes_file.stem[:-7]}.xes"
+            print(f"Loading eventlog from base version: {xes_file}")
+        cur_path = result_path / orig_xes_file.stem
         cur_path.mkdir()
-        print(f"{xes_file.stem}")
+        print(f"{orig_xes_file.stem}")
         event_log = pm4py.read_xes(str(xes_file))
         # Compute a list of benchmarks that we should execute
         evaluate_event_logs = []
         # Check if in data_path there is a file with the same name as the xes file but with the extension .ptml
-        if (ptml_file := data_path / f"{xes_file.stem}.ptml").is_file():
+        if (ptml_file := data_path / f"{orig_xes_file.stem}.ptml").is_file():
             process_tree = pm4py.read_ptml(str(ptml_file))
             print(f" -> {ptml_file.stem}")
             evaluate_event_logs.append({'event_log': event_log,
@@ -52,11 +58,11 @@ if __name__ == "__main__":
                                         'file_tag': ""})
         else:
             for noise_threshold, file_tag in [(0.0, "_pt00"), (0.1, "_pt10"), (0.25, "_pt25"), (0.5, "_pt50")]:
-                if (ptml_file := data_path / f"{xes_file.stem}{file_tag}.ptml").is_file():
+                if (ptml_file := data_path / f"{orig_xes_file.stem}{file_tag}.ptml").is_file():
                     process_tree = pm4py.read_ptml(str(ptml_file))
                 else:
                     process_tree = discover_process_tree(event_log, noise_threshold=noise_threshold)
-                    pm4py.write_ptml(process_tree, str(data_path / f"{xes_file.stem}{file_tag}.ptml"))
+                    pm4py.write_ptml(process_tree, str(data_path / f"{orig_xes_file.stem}{file_tag}.ptml"))
                 print(f"adding -> {ptml_file.stem}")
                 evaluate_event_logs.append({'event_log': event_log, 
                                             'process_tree': process_tree,

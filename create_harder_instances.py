@@ -44,17 +44,26 @@ def removeCOUNTfromTree(node):
 
 
 if __name__ == "__main__":
+
     result_path = Path("output") / datetime.now().strftime("%Y%m%d%H%M%S")
     result_path.mkdir()
-    
+
+    # Let's clean the data folder
+    for file in DATA_PATH.glob("*_harder.xes"):
+        file.unlink()
+    # Let's also delete all ptml files which were created automatically, i.e. end with _pt*
+    for file in DATA_PATH.glob("*_pt*.ptml"):
+        file.unlink()
+
+
     # Go through all *.xes files in the data folder and make them harder
 
     for xes_file in DATA_PATH.glob("*.xes"):
         # Check if the filename does not end with "_harder.xes"
-        if xes_file.stem.endswith("_harder"):
+        if xes_file.stem.endswith("_harder") or xes_file.stem.startswith("boring"):
             continue
         print("Processing file: ", xes_file)
-        event_log = pm4py.read_xes(str(DATA_PATH / "sepsis.xes"))[relevant_columns]
+        event_log = pm4py.read_xes(str(DATA_PATH / xes_file))[relevant_columns]
         harderEventlog = unifyXES(event_log)
         pm4py.write_xes(harderEventlog, str(DATA_PATH / (xes_file.stem + "_harder.xes")))
         print("Done processing file: ", xes_file)
