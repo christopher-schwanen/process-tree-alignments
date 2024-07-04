@@ -32,9 +32,6 @@ if __name__ == "__main__":
     result_path = Path("output") / datetime.now().strftime("%Y%m%d%H%M%S")
     result_path.mkdir()
 
-    # Compute a list of benchmarks that we should execute
-    evaluate_event_logs = []
-
     for xes_file in data_path.glob("*.xes"):
         if not xes_file.is_file():
             continue
@@ -42,6 +39,8 @@ if __name__ == "__main__":
         cur_path.mkdir()
         print(f"{xes_file.stem}")
         event_log = pm4py.read_xes(str(xes_file))
+        # Compute a list of benchmarks that we should execute
+        evaluate_event_logs = []
         # Check if in data_path there is a file with the same name as the xes file but with the extension .ptml
         if (ptml_file := data_path / f"{xes_file.stem}.ptml").is_file():
             process_tree = pm4py.read_ptml(str(ptml_file))
@@ -65,6 +64,6 @@ if __name__ == "__main__":
                                             'result_path': cur_path,
                                             'file_tag': file_tag})
 
-    # Evaluation:
+        # Evaluation:
         for benchmark in evaluate_event_logs:
             evaluate_event_log(**benchmark)
