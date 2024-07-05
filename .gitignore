@@ -1,0 +1,10 @@
+.idea/
+.vs/
+.vscode/
+
+__pycache__/
+*.pyc
+
+data/
+lib/
+output/
