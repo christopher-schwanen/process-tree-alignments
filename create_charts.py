@@ -5,7 +5,7 @@ import seaborn as sns
 
 
 OUTPUT_PATH = Path("output").resolve()
-RUNS = Path("20240630110454")
+RUNS = Path("final_palindrom")
 
 
 OUTPUT_PATH.glob
@@ -13,6 +13,7 @@ OUTPUT_PATH.glob
 PERF1_NAME = "ILP"
 PERF2_NAME = "Approximation"
 PERF3_NAME = "Standard"
+PLOT_STANDARD_ARTIFICIAL = False
 
 
 def get_benchmarks(folder: Path):
@@ -60,41 +61,93 @@ def main(folder = OUTPUT_PATH / RUNS):
         # How man time and cost files are there for this benchmark?
         n_files = len(list(get_time_cost_pair(benchmark)))
 
-        # Create a figure and axis for the benchmark which contain n_files subplots (as a grid with at most 2 columns)
-        fig, axs = plt.subplots(n_files // 2 + n_files % 2, 2, figsize=(15, 5 * (n_files // 2 + n_files % 2)))
-        # Flatten the axs array
-        axs = axs.flatten()
+        # Plot title:
+        plot_title = f"Benchmark: {benchmark.stem}"
+        plot_figsize=(15, 5)
+        plot_xlabel = "Performance Factor"
+        plot_ylabel = "CDF"
+        plot_axtitle = "ECDF of Performance Factor"
 
-        # Add a title to the figure
-        fig.suptitle(f"Benchmark: {benchmark.stem}", fontsize=16)
-        
-        # Loop through all time and cost files for this benchmark
-        i = 0
-        for timefile, costfile in get_time_cost_pair(benchmark):
-            print("Processing Pair: ", timefile.stem, costfile.stem)
-            # Process the time and cost files
-            df = df_from_timecost(timefile, costfile)
-            # Compute performance stats
-            df = compute_performance_stats(df)
-            # Plot performance stats for the three algorithms as a cdf for the respective perf columns
+
+
+        # if there are more than one time/cost pairs, draw them in a grid
+        if n_files > 1:
+            # Create a figure and axis for the benchmark which contain n_files subplots (as a grid with at most 2 columns)
+            fig, axs = plt.subplots(n_files // 2 + n_files % 2, 2, figsize=(15, 5 * (n_files // 2 + n_files % 2)))
+            # Flatten the axs array
+            axs = axs.flatten()
+
+            # Add a title to the figure
+            fig.suptitle(plot_title, fontsize=16)
             
-            for col in ["perf1", "perf2", "perf3"]:
-                sns.ecdfplot(data=df[col], ax=axs[i])
-            axs[i].set_title("ECDF of Performance Factor")
-            axs[i].legend([PERF1_NAME, PERF2_NAME, PERF3_NAME])
-            # Add a grid to the plot
-            axs[i].grid()
-            # Add a tiltle to the subplot
-            axs[i].set_title("Configuration: " + timefile.stem.split("_")[-1])
-            # Set the x-axis label
-            axs[i].set_xlabel("Performance Factor")
-            # Set the y-axis label
-            axs[i].set_ylabel("CDF")
+            # Loop through all time and cost files for this benchmark
+            i = 0
+            for timefile, costfile in get_time_cost_pair(benchmark):
+                print("Processing Pair: ", timefile.stem, costfile.stem)
+                # Process the time and cost files
+                df = df_from_timecost(timefile, costfile)
+                # Compute performance stats
+                df = compute_performance_stats(df)
+                # Plot performance stats for the three algorithms as a cdf for the respective perf columns
+                
+                rel_cols = ["perf1", "perf2", "perf3"]
+                cols_names = [PERF1_NAME, PERF2_NAME, PERF3_NAME]
+
+                for col in [rel_cols]:
+                    sns.ecdfplot(data=df[col], ax=axs[i])
+                axs[i].set_title(plot_axtitle)
+                axs[i].legend(cols_names)
+                # Add a grid to the plot
+                axs[i].grid()
+                # Add a tiltle to the subplot
+                axs[i].set_title("Configuration: " + timefile.stem.split("_")[-1])
+                # Set the x-axis label
+                axs[i].set_xlabel(plot_xlabel)
+                # Set the y-axis label
+                axs[i].set_ylabel(plot_ylabel)
+                # Increment the index
+                i += 1
+
+        else:
+            # Case of a single time/cost pair
+            # Create a figure and axis for the benchmark
+            fig, ax = plt.subplots(1, 1, figsize=plot_figsize)
+
+            # Add a title to the figure
+            fig.suptitle(plot_title, fontsize=16)
+
+            # Process the time and cost files
+            for timefile, costfile in get_time_cost_pair(benchmark):
+                print("Processing Pair: ", timefile.stem, costfile.stem)
+                # Process the time and cost files
+                df = df_from_timecost(timefile, costfile)
+                # Compute performance stats
+                df = compute_performance_stats(df)
 
 
+                # Plot Standard?
+                if PLOT_STANDARD_ARTIFICIAL:
+                    rel_cols = ["perf1", "perf2", "perf3"]
+                    cols_names = [PERF1_NAME, PERF2_NAME, PERF3_NAME]
+                else:
+                    rel_cols = ["perf1", "perf2"]
+                    cols_names = [PERF1_NAME, PERF2_NAME]
 
-            # Increment the index
-            i += 1
+                # Plot performance stats for the three algorithms as a cdf for the respective perf columns
+                for col in rel_cols:
+                    sns.ecdfplot(data=df[col], ax=ax)
+                ax.set_title(plot_axtitle)
+                ax.legend(cols_names)
+                # Add a grid to the plot
+                ax.grid()
+                # Add a tiltle to the subplot
+                ax.set_title("Configuration: " + timefile.stem.split("_")[-1])
+                # Set the x-axis label
+                ax.set_xlabel(plot_xlabel)
+                # Set the y-axis label
+                ax.set_ylabel(plot_ylabel)
+
+
 
         # Cut the figure so that there is no empty space surrounding the plots
         plt.tight_layout()
