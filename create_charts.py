@@ -5,7 +5,7 @@ import seaborn as sns
 import numpy as np  
 
 OUTPUT_PATH = Path("output").resolve()
-RUNS = Path("final_sepsis")
+RUNS = Path("final_palindrom")
 
 
 OUTPUT_PATH.glob
@@ -20,7 +20,7 @@ FONTSIZE = 16
 LINEWIDTH = 1.5
 DPI = 600
 
-TIMEOUT = 20
+TIMEOUT = 330
 INFINITY = float('inf')
 INFINITY = 10 ** 10
 
@@ -159,6 +159,20 @@ def main(folder = OUTPUT_PATH / RUNS):
                 df = compute_performance_stats(df)
 
 
+                # Compute the range of performance factors expcept for INFINITY
+                perf1 = df["perf1"].where(df["perf1"] != INFINITY).dropna()
+                perf2 = df["perf2"].where(df["perf2"] != INFINITY).dropna()
+                perf3 = df["perf3"].where(df["perf3"] != INFINITY).dropna()
+
+                min_perf = min(perf1.min(), perf2.min(), perf3.min())
+                if perf3.max != None and perf3.max() != np.nan and perf3.max() != np.inf:
+                    max_perf = np.ceil(max(perf1.max(), perf2.max(), perf3.max()))
+                else:
+                    max_perf = np.ceil(max(perf1.max(), perf2.max()))
+
+                print("Max Perf: ", max_perf, perf2.max()) 
+
+
                 # Plot Standard?
                 if PLOT_STANDARD_ARTIFICIAL:
                     rel_cols = ["perf1", "perf2", "perf3"]
@@ -175,11 +189,20 @@ def main(folder = OUTPUT_PATH / RUNS):
                 # Add a grid to the plot
                 ax.grid()
                 # Add a tiltle to the subplot
-                ax.set_title("Configuration: " + timefile.stem.split("_")[-1])
+                #ax.set_title("Configuration: " + timefile.stem.split("_")[-1])
                 # Set the x-axis label
                 ax.set_xlabel(plot_xlabel)
                 # Set the y-axis label
                 ax.set_ylabel(plot_ylabel)
+
+
+                # Set the x-axis limits
+                ax.set_xlim(0.9, max_perf)
+
+                # Set the font size of the x-axis and y-axis labels
+                ax.set_xlabel(plot_xlabel, fontsize=AXISFONTSIZE)
+                ax.set_ylabel(plot_ylabel, fontsize=AXISFONTSIZE)
+
 
                 
 
