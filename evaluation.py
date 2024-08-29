@@ -180,19 +180,19 @@ def evaluate_event_log(event_log: EventLog | pd.DataFrame,
     if len(trace_variants) > max_trace_variants:
         trace_variants = trace_variants[OFFSET:(max_trace_variants+OFFSET)]
 
-    # We create a shared queue to store the results of the benchmark
-    q = Queue()
-
-    # Start writer process to store the results
-    writer = Process(target=store_results, args=(q, result_path, file_tag, len(trace_variants)))
-    writer.start()
-
     # Collect the work to do:
     trace_variants = list(trace_variants)
     if (n := len(trace_variants)) == 0:
         print("No trace variants found.")
         return
     print(f"Number of trace variants: {n}")
+
+    # We create a shared queue to store the results of the benchmark
+    q = Queue()
+
+    # Start writer process to store the results
+    writer = Process(target=store_results, args=(q, result_path, file_tag, n))
+    writer.start()
 
     # Split the trace variants into chunks of size N_WORKERS
     # compute chunk sizes so that N_WORKERS are used
