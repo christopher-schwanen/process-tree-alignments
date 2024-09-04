@@ -30,15 +30,18 @@ MAX_TRACE_VARIANTS = 1000
 OFFSET = 0
 
 
-def align_wrapper(cost1, trace, process_tree_graph) -> None:
+def align_wrapper(cost1: Value, trace: Trace, process_tree_graph: ProcessTreeGraph) -> None:
     cost1.value = align(trace, process_tree_graph)
 
 
-def alignments_wrapper(cost2, trace, process_tree) -> None:
+def alignments_wrapper(cost2: Value, trace: Trace, process_tree: ProcessTree) -> None:
     cost2.value = pm4py_align_process_tree(trace, process_tree)['cost']
 
 
-def alignments_petri_net_wrapper(cost3, trace, accepting_petri_net) -> None:
+def alignments_petri_net_wrapper(cost3: Value,
+                                 trace: Trace,
+                                 accepting_petri_net: tuple[PetriNet, Marking, Marking]
+                                 ) -> None:
     cost3.value = pm4py_align_petri_net(trace, *accepting_petri_net)['cost']
 
 
@@ -54,35 +57,23 @@ def evaluate_trace(trace: Trace,
     
     cost1, cost2, cost3 = Value('d', -1.0), Value('d', -1.0), Value('d', -1.0)
 
-    def align_with_timeout() -> None:
-        p = Process(target=align_wrapper, args=(cost1, trace, process_tree_graph))
-        p.start()
-        p.join(TIMEOUT)
-        if p.is_alive():
-            p.terminate()
-            p.join()
+    def process_with_timeout(process: Process) -> None:
+        process.start()
+        process.join(TIMEOUT)
+        if process.is_alive():
+            process.terminate()
+            process.join()
             raise TimeoutError
-        p.close()
+        process.close()
+
+    def align_with_timeout() -> None:
+        process_with_timeout(Process(target=align_wrapper, args=(cost1, trace, process_tree_graph)))
 
     def alignments_with_timeout() -> None:
-        p = Process(target=alignments_wrapper, args=(cost2, trace, process_tree))
-        p.start()
-        p.join(TIMEOUT)
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            raise TimeoutError
-        p.close()
+        process_with_timeout(Process(target=alignments_wrapper, args=(cost2, trace, process_tree)))
 
     def alignments_petri_net_with_timeout() -> None:
-        p = Process(target=alignments_petri_net_wrapper, args=(cost3, trace, accepting_petri_net))
-        p.start()
-        p.join(TIMEOUT)
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            raise TimeoutError
-        p.close()
+        process_with_timeout(Process(target=alignments_petri_net_wrapper, args=(cost3, trace, accepting_petri_net)))
 
     try:
         times1 = Timer(align_with_timeout).repeat(repeat=repeat, number=1)
