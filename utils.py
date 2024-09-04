@@ -33,8 +33,14 @@ def discover_process_tree_with_naive_label_splitting(event_log: pd.DataFrame,
 
     # Add counts to activity labels
     event_log = event_log.copy()
-    event_log.sort_values(['case:concept:name', 'time:timestamp', 'concept:name', 'lifecycle:transition'])
-    event_log['repetition'] = event_log.groupby(['case:concept:name', 'concept:name', 'lifecycle:transition']).cumcount()
+    if 'lifecycle:transition' in event_log.columns:
+        event_log.sort_values(['case:concept:name', 'time:timestamp', 'concept:name', 'lifecycle:transition'])
+        event_log['repetition'] = event_log.groupby(['case:concept:name',
+                                                     'concept:name',
+                                                     'lifecycle:transition']).cumcount()
+    else:
+        event_log.sort_values(['case:concept:name', 'time:timestamp', 'concept:name'])
+        event_log['repetition'] = event_log.groupby(['case:concept:name', 'concept:name']).cumcount()
     event_log['repetition'] = event_log['repetition'] % max_distinction
     event_log['concept:name'] = event_log['concept:name'] + '_' + event_log['repetition'].astype(str).str.zfill(digits)
 
